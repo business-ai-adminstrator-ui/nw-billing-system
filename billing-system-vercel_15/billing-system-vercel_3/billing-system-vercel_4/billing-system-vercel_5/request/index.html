@@ -1,0 +1,22 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><title>Request PI | NW Academy</title>
+<style>*{box-sizing:border-box}body{margin:0;min-height:100vh;background:linear-gradient(160deg,#0a0f1f,#172038 60%,#1d3a8a);font-family:Inter,system-ui,sans-serif;display:flex;align-items:center;justify-content:center;padding:20px}
+.w{background:#fff;border-radius:16px;padding:28px;max-width:440px;width:100%}h2{margin:0 0 4px;color:#172342}p{color:#667090;font-size:13px;margin:0 0 14px}label{display:block;font-size:12px;font-weight:600;color:#667090;margin:12px 0 5px}
+input,select{width:100%;padding:11px 12px;border:1px solid #dfe4f0;border-radius:9px;font-size:14px;font-family:inherit}button{margin-top:18px;width:100%;padding:12px;border:0;border-radius:9px;background:#0b5cf5;color:#fff;font-weight:700;font-size:14px;cursor:pointer}button:disabled{opacity:.6}
+.t{margin-top:14px;font-size:15px;color:#172342}#m{margin-top:12px;font-size:13px;font-weight:600}</style></head><body><div class="w"><h2>Request Proforma Invoice</h2><p>For direct-payment clients, after the registration form.</p>
+<label>Company name</label><input id="co" placeholder="e.g. ABC SDN BHD"><label>Number of pax</label><input id="px" type="number" min="1" value="1"><label>Price per pax (MYR)</label><input id="pr" type="number" min="0" step="0.01">
+<label>Your name (Sales)</label><select id="by"></select><div class="t">Total: <b id="tt">MYR 0.00</b> <span style="font-size:12px;color:#667090">(SST excluded)</span></div><button id="go">Request PI</button><div id="m"></div></div>
+<script src="/config.js"></script><script src="/lib/supabase.js"></script><script>
+const SALES=["Abbiy Kong", "Anthony Chai", "Bernice Lim", "Bruce Cha Fung Hin", "Edwin Chong", "Jess Loo", "Jian Hwa", "Jim Khoo", "Jin Hong", "Kai Bin", "Matthew Oh", "Nicholas Lim", "Nicole", "Serene Gan", "Shawn", "Siyenn", "William", "Winnie Kang", "Yao Kang", "Zi Hui"];let P={one:3940,many:3540};const $=i=>document.getElementById(i);
+const sb=window.CFG&&CFG.url?supabase.createClient(CFG.url,CFG.key,{auth:{persistSession:false,autoRefreshToken:false,detectSessionInUrl:false}}):null;
+$('by').innerHTML=SALES.map(n=>'<option>'+n.replace(/&/g,'&amp;').replace(/</g,'&lt;')+'</option>').join('');
+const fmt=n=>n.toLocaleString('en-MY',{minimumFractionDigits:2,maximumFractionDigits:2});
+const pf=n=>n<=1?P.one:P.many;const tot=()=>{$('tt').textContent='MYR '+fmt((parseInt($('px').value)||0)*(parseFloat($('pr').value)||0))};
+$('pr').value=pf(1);tot();$('px').oninput=()=>{$('pr').value=pf(parseInt($('px').value)||1);tot()};$('pr').oninput=tot;
+if(sb)sb.from('bs_settings').select('value').eq('key','bsai_price').maybeSingle().then(r=>{const v=r.data&&r.data.value;if(v&&v.one>0&&v.many>0){P={one:+v.one,many:+v.many};$('pr').value=pf(parseInt($('px').value)||1);tot()}});
+$('go').onclick=async()=>{const company=$('co').value.trim(),pax=parseInt($('px').value)||0,price=parseFloat($('pr').value)||0,m=$('m');
+ if(!company||pax<1||!(price>0)){m.style.color='#d93025';m.textContent='Please fill in company name, pax and price.';return}
+ if(!sb){m.style.color='#d93025';m.textContent='System not set up.';return}
+ $('go').disabled=true;const {error}=await sb.from('bs_requests').insert({company,pax,price,requested_by:$('by').value,status:'pending_issue'});$('go').disabled=false;
+ if(error){m.style.color='#d93025';m.textContent='Could not send: '+error.message;return}
+ m.style.color='#0f9d58';m.textContent='Sent! Admin will issue the PI for '+company+'.';$('co').value='';$('px').value=1;$('pr').value=pf(1);tot()};
+</script></body></html>
